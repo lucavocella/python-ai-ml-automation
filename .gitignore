@@ -1,0 +1,6 @@
+#ignore csv files
+*.csv
+#ignore model files
+*.pth
+#ignore __pycache__
+__pycache__
