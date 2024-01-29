@@ -110,38 +110,24 @@ python test_model_csv.py test_csv/
 pipeline.py [-h] 
 [--incorrectness_threshold INCORRECTNESS_THRESHOLD] 
 [--overlap_threshold OVERLAP_THRESHOLD] 
-[--min_length MIN_LENGTH] 
-[--log_folder LOG_FOLDER]
+[--min_length MIN_LENGTH]
 csv_folder
-graphs_folder
 model_path
-combinations_csv_path
-combinations_png_path
-best_combinations_path
 ```
 
 where:
 - INCORRECTNESS_THRESHOLD is the threshold for considering a sample as "best sample"
 - OVERLAP_THRESHOLD is the overlap threshold for combining 2 csv.
 - MIN_LENGTH is the minimum length for considering csv.
-- LOG_FOLDER is the folder for creating the logs.
 - csv_folder is the folder with the csv files for apply the model.
-- graphs_folder is the folder to store the graphs.
 - model_path is the path to the model for computing incorrectness.
-- combinations_csv_path is the path to save combinations csv.
-- combinations_png_path is the path to save combinations png.
-- best_combinations_path is the path to save the best combinations png.
 
 Example:
 
 ```
 python pipeline.py
 new_csv/csv_files/ 
-new_csv/figs2/ 
 model.pth 
-new_csv/combinations2/ 
-new_csv/combinations2_img/ 
-new_csv/best_combinations_png/ 
 --overlap_threshold 0.1 
 --min_length 50 
 --incorrectness_threshold 0.005

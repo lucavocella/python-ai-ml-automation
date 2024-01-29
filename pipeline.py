@@ -48,6 +48,14 @@ def get_combination_list(element, csv_list):
                              csv_file not in joined_subset]
     return csv_to_combine_list_i
 
+def add_suffix_to_path(original_path, suffix):
+    # Remove trailing slash if present
+    original_path = original_path.rstrip(os.path.sep)
+
+    # Add a suffix to the folder name
+    new_path = os.path.join(os.path.dirname(original_path), os.path.basename(original_path) + suffix)
+
+    return new_path
 
 def combinate_while_possible(csv_to_combine, list_of_csv_to_combine, out_path):
     if not list_of_csv_to_combine:
@@ -75,33 +83,33 @@ def combinate_while_possible(csv_to_combine, list_of_csv_to_combine, out_path):
 
 parser = argparse.ArgumentParser()
 parser.add_argument('csv_folder',  type=str, help='Folder containing CSV files')
-parser.add_argument('graphs_folder',  help='Folder to save graphs')
 parser.add_argument('model_path',  help='Path of model to load')
-parser.add_argument('combinations_csv_path',  help='Path of output the '
-                                                      'combinations')
-parser.add_argument('combinations_png_path',  help='Path of output the png')
-parser.add_argument('best_combinations_path',  help='Path of output the best combinations')
 parser.add_argument('--incorrectness_threshold', type=float, default=0.01)
 parser.add_argument('--overlap_threshold', type=float, default=0.1)
 parser.add_argument('--min_length', type=int, default=50)
-parser.add_argument('--log_folder', type=str, default='logs/')
 
 if __name__ == "__main__":
 
     args = parser.parse_args()
     csv_folder = args.csv_folder
-    graphs_folder = args.graphs_folder
+    graphs_folder = add_suffix_to_path(csv_folder, '_graphs')
     model_path = args.model_path
-    combinations_csv_path = args.combinations_csv_path
-    combinations_png_path = args.combinations_png_path
-    best_combinations_path = args.best_combinations_path
+    combinations_csv_path = add_suffix_to_path(csv_folder, '_combinations_csv')
+    combinations_png_path = add_suffix_to_path(csv_folder, '_combinations_png')
+    best_combinations_path = add_suffix_to_path(csv_folder, '_best_combinations_png')
     incorrectness_threshold = args.incorrectness_threshold
     overlap_threshold = args.overlap_threshold
     min_length = args.min_length
-    log_folder = args.log_folder
+    log_folder = add_suffix_to_path(csv_folder, '_logs')
     correctness_log = os.path.join(log_folder, 'correctness.csv')
     combinations_log = os.path.join(log_folder, 'combinations.json')
     combinations_correctness_log = os.path.join(log_folder, 'combinations_correctness.csv')
+    if os.path.exists(combinations_csv_path):
+        shutil.rmtree(combinations_csv_path)
+    if os.path.exists(combinations_png_path):
+        shutil.rmtree(combinations_png_path)
+    if os.path.exists(best_combinations_path):
+        shutil.rmtree(best_combinations_path)
     os.makedirs(log_folder, exist_ok=True)
     os.makedirs(combinations_csv_path, exist_ok=True)
     os.makedirs(combinations_png_path, exist_ok=True)
