@@ -50,10 +50,8 @@ def get_combination_list(element, csv_list):
 
 def add_suffix_to_path(original_path, suffix):
     # Remove trailing slash if present
-    original_path = original_path.rstrip(os.path.sep)
-
-    # Add a suffix to the folder name
-    new_path = os.path.join(os.path.dirname(original_path), os.path.basename(original_path) + suffix)
+    original_path = os.path.normpath(original_path)
+    new_path = original_path + suffix
 
     return new_path
 
