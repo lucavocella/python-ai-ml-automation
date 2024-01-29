@@ -113,6 +113,7 @@ if __name__ == "__main__":
     os.makedirs(combinations_png_path, exist_ok=True)
     os.makedirs(best_combinations_path, exist_ok=True)
     csv_list = os.listdir(csv_folder)
+    csv_list = [element for element in csv_list if element[-4:] == '.csv']
     print('Creating graphics...')
     create_graphics(
         csv_list=[os.path.join(csv_folder, element) for element in csv_list],
