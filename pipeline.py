@@ -55,14 +55,14 @@ def add_suffix_to_path(original_path, suffix):
 
     return new_path
 
-def combinate_while_possible(csv_to_combine, list_of_csv_to_combine, out_path):
+def combinate_while_possible(csv_to_combine, list_of_csv_to_combine, out_path, overlap_threshold):
     if not list_of_csv_to_combine:
         return None
     df_to_combine = pd.read_csv(csv_to_combine, sep=';', header=None)
     overlap_list = list(map(lambda x: compute_overlap_percentage(df_to_combine, pd.read_csv(x, sep=';', header=None)), list_of_csv_to_combine))
     min_idx = np.argmin(overlap_list)
     min_overlap = overlap_list[min_idx]
-    if min_overlap < 0.1:
+    if min_overlap < overlap_threshold:
         min_overlap_csv = list_of_csv_to_combine[min_idx]
         min_overlap_df = pd.read_csv(min_overlap_csv, sep=';', header=None)
         combined_df = combine_dataframes(df_to_combine, min_overlap_df)
@@ -70,12 +70,12 @@ def combinate_while_possible(csv_to_combine, list_of_csv_to_combine, out_path):
             new_path = csv_to_combine
             combinations_dict[new_path].append(min_overlap_csv)
         else:
-            new_path = out_path + f'combination_{len(os.listdir(out_path)) + 1}.csv'
+            new_path = os.path.join(out_path, f'combination_{len(os.listdir(out_path)) + 1}.csv')
             combinations_dict[new_path] = [csv_to_combine, min_overlap_csv]
         csv_to_combine_list_i = get_combination_list(min_overlap_csv,
                                                      list_of_csv_to_combine)
         combined_df.to_csv(new_path, sep=';', index=False, header=None)
-        return combinate_while_possible(new_path, csv_to_combine_list_i, out_path)
+        return combinate_while_possible(new_path, csv_to_combine_list_i, out_path, overlap_threshold)
     else:
         return None
 
@@ -85,6 +85,7 @@ parser.add_argument('model_path',  help='Path of model to load')
 parser.add_argument('--incorrectness_threshold', type=float, default=0.01)
 parser.add_argument('--overlap_threshold', type=float, default=0.1)
 parser.add_argument('--min_length', type=int, default=50)
+parser.add_argument('--skip_graphs_generation', action='store_true')
 
 if __name__ == "__main__":
 
@@ -98,6 +99,7 @@ if __name__ == "__main__":
     incorrectness_threshold = args.incorrectness_threshold
     overlap_threshold = args.overlap_threshold
     min_length = args.min_length
+    skip_graphs_generation = args.skip_graphs_generation
     log_folder = add_suffix_to_path(csv_folder, '_logs')
     correctness_log = os.path.join(log_folder, 'correctness.csv')
     combinations_log = os.path.join(log_folder, 'combinations.json')
@@ -114,14 +116,17 @@ if __name__ == "__main__":
     os.makedirs(best_combinations_path, exist_ok=True)
     csv_list = os.listdir(csv_folder)
     csv_list = [element for element in csv_list if element[-4:] == '.csv']
-    print('Creating graphics...')
-    create_graphics(
-        csv_list=[os.path.join(csv_folder, element) for element in csv_list],
-        x_column=0,
-        y_column=3,
-        window=10,
-        out_folder=graphs_folder
-    )
+    if not skip_graphs_generation:
+        print('Creating graphics...')
+        if os.path.exists(graphs_folder):
+            shutil.rmtree(graphs_folder)
+        create_graphics(
+            csv_list=[os.path.join(csv_folder, element) for element in csv_list],
+            x_column=0,
+            y_column=3,
+            window=10,
+            out_folder=graphs_folder
+        )
     print('Computing Correctness...')
     test_model(graphs_folder, model_path, correctness_log)
 
@@ -147,7 +152,7 @@ if __name__ == "__main__":
     for i, csv_to_combine in tqdm(enumerate(best_samples), total=len(best_samples)):
         # get list of csv to combine that was not already combined
         csv_to_combine_list_i = get_combination_list(csv_to_combine, csv_to_combine_list)
-        combinate_while_possible(csv_to_combine, csv_to_combine_list_i, combinations_csv_path)
+        combinate_while_possible(csv_to_combine, csv_to_combine_list_i, combinations_csv_path, overlap_threshold)
     json.dump(combinations_dict, open(combinations_log, 'w'), indent=4)
     print('\nCreating graphics...')
     create_graphics(
