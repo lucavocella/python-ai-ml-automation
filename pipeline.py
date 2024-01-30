@@ -86,6 +86,7 @@ parser.add_argument('--incorrectness_threshold', type=float, default=0.01)
 parser.add_argument('--overlap_threshold', type=float, default=0.1)
 parser.add_argument('--min_length', type=int, default=50)
 parser.add_argument('--skip_graphs_generation', action='store_true')
+parser.add_argument('--skip_correctness_computation', action='store_true')
 
 if __name__ == "__main__":
 
@@ -100,6 +101,7 @@ if __name__ == "__main__":
     overlap_threshold = args.overlap_threshold
     min_length = args.min_length
     skip_graphs_generation = args.skip_graphs_generation
+    skip_correctness_computation = args.skip_correctness_computation
     log_folder = add_suffix_to_path(csv_folder, '_logs')
     correctness_log = os.path.join(log_folder, 'correctness.csv')
     combinations_log = os.path.join(log_folder, 'combinations.json')
@@ -123,12 +125,13 @@ if __name__ == "__main__":
         create_graphics(
             csv_list=[os.path.join(csv_folder, element) for element in csv_list],
             x_column=0,
-            y_column=3,
+            y_column=4,
             window=10,
             out_folder=graphs_folder
         )
-    print('Computing Correctness...')
-    test_model(graphs_folder, model_path, correctness_log)
+    if not skip_correctness_computation:
+        print('Computing Correctness...')
+        test_model(graphs_folder, model_path, correctness_log)
 
     print('Selecting correct csv...')
     df = pd.read_csv(correctness_log)
@@ -158,7 +161,7 @@ if __name__ == "__main__":
     create_graphics(
         csv_list=[os.path.join(combinations_csv_path, file) for file in os.listdir(combinations_csv_path)],
         x_column=0,
-        y_column=3,
+        y_column=4,
         window=10,
         out_folder=combinations_png_path,
     )
