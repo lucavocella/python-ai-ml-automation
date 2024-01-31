@@ -10,6 +10,11 @@ from tqdm import tqdm
 from create_graphics import create_graphics
 from test_model import test_model
 
+import os
+
+
+os.environ['KMP_DUPLICATE_LIB_OK']='True'
+
 combinations_dict = {}
 
 def compute_overlap_percentage(dataframe_1, dataframe_2):
