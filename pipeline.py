@@ -17,6 +17,17 @@ os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
 combinations_dict = {}
 
+class NpEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.integer):
+            return int(obj)
+        if isinstance(obj, np.floating):
+            return float(obj)
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        return super(NpEncoder, self).default(obj)
+
+
 def compute_overlap_percentage(dataframe_1, dataframe_2):
     elements_1 = dataframe_1.iloc[:, 5].values
     elements_2 = dataframe_2.iloc[:, 5].values
@@ -27,9 +38,10 @@ def compute_overlap_percentage(dataframe_1, dataframe_2):
 def combine_dataframes(dataframe_1, dataframe_2):
     dataframe_result = pd.concat([dataframe_1, dataframe_2], axis='rows')
     dataframe_result = dataframe_result.sort_values(
-        by=[dataframe_1.columns[5]],
+        by=[5, len(dataframe_result.columns) - 1],
         axis='rows'
-    )
+    ).drop_duplicates(subset=[5], keep='first')
+
     dataframe_result = dataframe_result.reset_index(drop=True)
     dataframe_result[0] = range(len(dataframe_result))
     dataframe_result[0] = dataframe_result[0].astype(int)
@@ -40,7 +52,7 @@ def combine_dataframes(dataframe_1, dataframe_2):
     return dataframe_result
 
 def get_combination_list(element, csv_list):
-    subset_containing_element = [subset.copy() for subset in
+    subset_containing_element = [subset[0].copy() for subset in
                                  combinations_dict.values() if
                                  element in subset]
 
@@ -71,16 +83,30 @@ def combinate_while_possible(csv_to_combine, list_of_csv_to_combine, out_path, o
         min_overlap_csv = list_of_csv_to_combine[min_idx]
         min_overlap_df = pd.read_csv(min_overlap_csv, sep=';', header=None)
         combined_df = combine_dataframes(df_to_combine, min_overlap_df)
-        if 'combination' in csv_to_combine:
-            new_path = csv_to_combine
-            combinations_dict[new_path].append(min_overlap_csv)
+        if combined_df.iloc[-1, 5] > df_to_combine.iloc[-1, 5]:
+            if 'combination' in csv_to_combine:
+                new_path = csv_to_combine
+                combinations_dict[new_path].append(
+                    [
+                        min_overlap_csv,
+                        combined_df.iloc[-1, 5]
+                    ]
+                )
+            else:
+                new_path = os.path.join(out_path, f'combination_{len(os.listdir(out_path)) + 1}.csv')
+                combinations_dict[new_path] = [
+                    [csv_to_combine, df_to_combine.iloc[-1, 5]],
+                    [min_overlap_csv, combined_df.iloc[-1, 5]]
+                ]
+            csv_to_combine_list_i = get_combination_list(min_overlap_csv,
+                                                         list_of_csv_to_combine)
+            combined_df.to_csv(new_path, sep=';', index=False, header=None)
+            return combinate_while_possible(new_path, csv_to_combine_list_i,
+                                            out_path, overlap_threshold)
         else:
-            new_path = os.path.join(out_path, f'combination_{len(os.listdir(out_path)) + 1}.csv')
-            combinations_dict[new_path] = [csv_to_combine, min_overlap_csv]
-        csv_to_combine_list_i = get_combination_list(min_overlap_csv,
-                                                     list_of_csv_to_combine)
-        combined_df.to_csv(new_path, sep=';', index=False, header=None)
-        return combinate_while_possible(new_path, csv_to_combine_list_i, out_path, overlap_threshold)
+            new_path = csv_to_combine
+            list_of_csv_to_combine.remove(min_overlap_csv)
+            return combinate_while_possible(new_path, list_of_csv_to_combine, out_path, overlap_threshold)
     else:
         return None
 
@@ -134,6 +160,7 @@ if __name__ == "__main__":
             window=10,
             out_folder=graphs_folder
         )
+    # exit()
     if not skip_correctness_computation:
         print('Computing Correctness...')
         test_model(graphs_folder, model_path, correctness_log)
@@ -161,7 +188,7 @@ if __name__ == "__main__":
         # get list of csv to combine that was not already combined
         csv_to_combine_list_i = get_combination_list(csv_to_combine, csv_to_combine_list)
         combinate_while_possible(csv_to_combine, csv_to_combine_list_i, combinations_csv_path, overlap_threshold)
-    json.dump(combinations_dict, open(combinations_log, 'w'), indent=4)
+    json.dump(combinations_dict, open(combinations_log, 'w'), indent=4, cls=NpEncoder)
     print('\nCreating graphics...')
     create_graphics(
         csv_list=[os.path.join(combinations_csv_path, file) for file in os.listdir(combinations_csv_path)],
